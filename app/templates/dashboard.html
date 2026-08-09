@@ -1,0 +1,2060 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>采购舆情监控系统</title>
+    <style>
+        /* ===== RESET & BASE ===== */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: "Microsoft YaHei", "PingFang SC", "Source Han Sans CN", "Noto Sans CJK SC", sans-serif;
+            font-size: 14px;
+            font-weight: 400;
+            line-height: 1.5;
+            color: #e0e0e0;
+            background: #0f172a;
+            min-height: 100vh;
+        }
+
+        /* ===== SCROLLBAR ===== */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+        /* ===== TOAST CONTAINER ===== */
+        .toast-container {
+            position: fixed;
+            top: 70px;
+            right: 24px;
+            z-index: 300;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            pointer-events: none;
+        }
+        .toast-item {
+            background: #1e293b;
+            color: #e0e0e0;
+            padding: 12px 20px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+            border-left: 3px solid #06b6d4;
+            opacity: 0;
+            transform: translateX(30px);
+            animation: toastSlideIn 0.35s ease forwards;
+            pointer-events: auto;
+            max-width: 360px;
+        }
+        .toast-item.toast-success { border-left-color: #22c55e; }
+        .toast-item.toast-warning { border-left-color: #f39c12; }
+        .toast-item.toast-error   { border-left-color: #ef4444; }
+        .toast-item.toast-out {
+            animation: toastSlideOut 0.3s ease forwards;
+        }
+
+        /* ===== SIDEBAR OVERLAY ===== */
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 199;
+        }
+        .sidebar-overlay.visible { display: block; }
+
+        /* ===== APP WRAPPER ===== */
+        .app-wrapper {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* ===== SIDEBAR ===== */
+        .sidebar {
+            width: 200px;
+            min-width: 200px;
+            background: #0c1222;
+            border-right: 1px solid #1e293b;
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            z-index: 200;
+            transition: transform 0.3s ease;
+        }
+        .sidebar-header {
+            padding: 20px 16px;
+            border-bottom: 1px solid #1e293b;
+        }
+        .sidebar-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 4px;
+        }
+        .sidebar-logo-icon {
+            font-size: 22px;
+            line-height: 1;
+        }
+        .sidebar-logo-text {
+            font-size: 16px;
+            font-weight: 600;
+            color: #f0f0f0;
+        }
+        .sidebar-logo-sub {
+            font-size: 11px;
+            color: #64748b;
+            margin-left: 32px;
+        }
+
+        .sidebar-nav {
+            flex: 1;
+            padding: 12px 0;
+        }
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 11px 20px;
+            color: #94a3b8;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
+            text-decoration: none;
+        }
+        .nav-item:hover {
+            background: rgba(6,182,212,0.06);
+            color: #e0e0e0;
+        }
+        .nav-item.active {
+            background: rgba(6,182,212,0.1);
+            color: #22d3ee;
+            border-left-color: #06b6d4;
+        }
+        .nav-item-icon {
+            font-size: 16px;
+            width: 20px;
+            text-align: center;
+        }
+
+        .sidebar-footer {
+            padding: 16px;
+            border-top: 1px solid #1e293b;
+        }
+        .sidebar-footer-link {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #64748b;
+            font-size: 13px;
+            text-decoration: none;
+            padding: 6px 4px;
+            transition: color 0.2s;
+        }
+        .sidebar-footer-link:hover { color: #94a3b8; }
+        .sidebar-version {
+            font-size: 11px;
+            color: #475569;
+            margin-top: 8px;
+            padding-left: 4px;
+        }
+
+        /* ===== MAIN CONTENT ===== */
+        .main-content {
+            flex: 1;
+            margin-left: 200px;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* ===== TOP BAR ===== */
+        .top-bar {
+            height: 56px;
+            min-height: 56px;
+            background: rgba(12, 18, 34, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid #1e293b;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 24px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .top-bar-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .hamburger-btn {
+            display: none;
+            background: none;
+            border: none;
+            color: #94a3b8;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 4px;
+            line-height: 1;
+        }
+        .hamburger-btn:hover { color: #e0e0e0; }
+        .status-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #22c55e;
+            flex-shrink: 0;
+        }
+        .status-dot.collecting {
+            background: #06b6d4;
+            animation: pulse 1s ease-in-out infinite;
+        }
+        .status-dot.error { background: #ef4444; }
+        .status-text { color: #e0e0e0; font-size: 13px; }
+        .time-info {
+            color: #64748b;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .time-sep { color: #334155; }
+        .countdown-display {
+            color: #64748b;
+            font-size: 11px;
+            animation: pulse 1s ease-in-out infinite;
+        }
+        .top-bar-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* ===== BUTTONS ===== */
+        .btn-primary {
+            background: linear-gradient(135deg, #06b6d4, #0891b2);
+            color: #fff;
+            border: none;
+            padding: 7px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-family: inherit;
+            font-weight: 500;
+            transition: all 0.2s;
+            position: relative;
+        }
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #22d3ee, #06b6d4);
+            box-shadow: 0 0 12px rgba(6,182,212,0.3);
+        }
+        .btn-primary:disabled {
+            background: #1e293b;
+            color: #475569;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+        .btn-secondary {
+            background: transparent;
+            color: #94a3b8;
+            border: 1px solid #334155;
+            padding: 7px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-family: inherit;
+            font-weight: 500;
+            transition: all 0.2s;
+            position: relative;
+        }
+        .btn-secondary:hover {
+            border-color: #475569;
+            color: #e0e0e0;
+        }
+        .btn-secondary:disabled {
+            color: #334155;
+            border-color: #1e293b;
+            cursor: not-allowed;
+        }
+        .btn-danger-sm {
+            background: rgba(239,68,68,0.1);
+            color: #ef4444;
+            border: 1px solid rgba(239,68,68,0.2);
+            padding: 4px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+        .btn-danger-sm:hover {
+            background: rgba(239,68,68,0.2);
+        }
+
+        .push-badge {
+            background: #ef4444;
+            color: #fff;
+            border-radius: 10px;
+            padding: 1px 6px;
+            font-size: 11px;
+            margin-left: 4px;
+            font-weight: 600;
+        }
+
+        /* ===== PAGE CONTENT ===== */
+        .page-content {
+            flex: 1;
+            padding: 24px;
+        }
+
+        /* ===== TAB PANEL ===== */
+        .tab-panel {
+            display: none;
+        }
+        .tab-panel.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        /* ===== STAT CARDS ===== */
+        .stat-cards {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .stat-card {
+            background: #1e293b;
+            border: 1px solid #2a3a52;
+            border-radius: 10px;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            transition: all 0.25s ease;
+        }
+        .stat-card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(6,182,212,0.3);
+            box-shadow: 0 4px 20px rgba(6,182,212,0.08);
+        }
+        .stat-card-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+        .stat-card-icon.icon-total { background: rgba(6,182,212,0.12); }
+        .stat-card-icon.icon-matched { background: rgba(34,197,94,0.12); }
+        .stat-card-icon.icon-high { background: rgba(245,158,11,0.12); }
+        .stat-card-icon.icon-pushed { background: rgba(139,92,246,0.12); }
+        .stat-card-icon.icon-unsent { background: rgba(239,68,68,0.12); }
+        .stat-card-body { flex: 1; min-width: 0; }
+        .stat-card-value {
+            font-size: 26px;
+            font-weight: 700;
+            line-height: 1.2;
+            color: #f0f0f0;
+        }
+        .stat-card-label {
+            font-size: 12px;
+            color: #64748b;
+            margin-top: 2px;
+        }
+        .stat-card-trend {
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 2px;
+        }
+        .trend-up { color: #22c55e; }
+        .trend-down { color: #ef4444; }
+        .trend-flat { color: #64748b; }
+
+        /* ===== SECTION HEADER ===== */
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+        .section-title {
+            font-size: 17px;
+            font-weight: 600;
+            line-height: 1.2;
+            color: #e0e0e0;
+        }
+
+        /* ===== FILTER BAR ===== */
+        .filter-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+        .filter-bar select,
+        .filter-bar input {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            color: #e0e0e0;
+            padding: 8px 14px;
+            font-size: 13px;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .filter-bar select:focus,
+        .filter-bar input:focus { border-color: #06b6d4; }
+        .filter-bar input {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        /* ===== TABLES ===== */
+        .table-container {
+            background: #1e293b;
+            border: 1px solid #2a3a52;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        table { width: 100%; border-collapse: collapse; }
+        thead th {
+            background: #172033;
+            color: #64748b;
+            font-size: 12px;
+            font-weight: 500;
+            padding: 12px 16px;
+            text-align: left;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        tbody tr {
+            background: #1e293b;
+            border-bottom: 1px solid #253347;
+            transition: background 0.15s;
+        }
+        tbody tr:hover { background: rgba(6,182,212,0.04); }
+        tbody td {
+            padding: 11px 16px;
+            font-size: 13px;
+        }
+
+        /* ===== ARTICLE EXPAND ROW ===== */
+        .expand-row {
+            display: none;
+            background: #172033;
+        }
+        .expand-row.visible {
+            display: table-row;
+            animation: slideDown 0.25s ease;
+        }
+        .expand-content {
+            padding: 12px 16px 16px 16px;
+            border-top: 1px solid #253347;
+        }
+        .expand-label {
+            font-size: 12px;
+            color: #06b6d4;
+            font-weight: 600;
+            margin-bottom: 6px;
+            letter-spacing: 0.5px;
+        }
+        .expand-text {
+            font-size: 13px;
+            color: #94a3b8;
+            line-height: 1.7;
+        }
+        .article-row-main {
+            cursor: pointer;
+        }
+        .article-row-main:hover {
+            background: rgba(6,182,212,0.06) !important;
+        }
+        .expand-arrow {
+            display: inline-block;
+            transition: transform 0.2s;
+            color: #475569;
+            font-size: 12px;
+            margin-right: 6px;
+        }
+        .expand-arrow.open {
+            transform: rotate(90deg);
+        }
+
+        /* ===== ARTICLE LINK ===== */
+        .article-link {
+            color: #22d3ee;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        .article-link:hover { color: #06b6d4; text-decoration: underline; }
+
+        /* ===== BADGES ===== */
+        .badge {
+            display: inline-block;
+            border-radius: 12px;
+            padding: 2px 10px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .badge-enabled { background: rgba(34,197,94,0.12); color: #22c55e; }
+        .badge-disabled { background: rgba(100,116,139,0.15); color: #64748b; }
+        .badge-food { background: rgba(34,197,94,0.12); color: #22c55e; }
+        .badge-cosmetics { background: rgba(236,72,153,0.12); color: #ec4899; }
+        .badge-drug { background: rgba(59,130,246,0.12); color: #3b82f6; }
+        .badge-device { background: rgba(245,158,11,0.12); color: #f59e0b; }
+        .badge-general { background: rgba(100,116,139,0.12); color: #94a3b8; }
+
+        /* ===== SCORE DISPLAY ===== */
+        .score-display {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .score-dots {
+            display: inline-flex;
+            gap: 3px;
+        }
+        .score-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #253347;
+            transition: background 0.2s;
+        }
+        .score-dot.filled-1 { background: #ef4444; }
+        .score-dot.filled-2 { background: #f97316; }
+        .score-dot.filled-3 { background: #f59e0b; }
+        .score-dot.filled-4 { background: #22c55e; }
+        .score-dot.filled-5 { background: #10b981; }
+        .score-num {
+            font-size: 13px;
+            font-weight: 600;
+            min-width: 14px;
+        }
+        .score-1 { color: #ef4444; }
+        .score-2 { color: #f97316; }
+        .score-3 { color: #f59e0b; }
+        .score-4 { color: #22c55e; }
+        .score-5 { color: #10b981; }
+
+        /* ===== SITE DOT ===== */
+        .site-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #475569;
+        }
+        .site-dot.active { background: #22c55e; }
+
+        /* ===== SITE COLLECT BUTTON ===== */
+        .site-collect-btn {
+            background: rgba(6,182,212,0.1);
+            color: #06b6d4;
+            border: 1px solid rgba(6,182,212,0.2);
+            padding: 4px 14px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+        .site-collect-btn:hover {
+            background: rgba(6,182,212,0.2);
+        }
+        .site-collect-btn:disabled {
+            background: #1e293b;
+            color: #475569;
+            border-color: #253347;
+            cursor: not-allowed;
+        }
+
+        /* ===== KEYWORD ADD ROW ===== */
+        .keyword-form {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .keyword-form input {
+            width: 220px;
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            color: #e0e0e0;
+            padding: 8px 14px;
+            font-size: 13px;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .keyword-form input:focus { border-color: #06b6d4; }
+        .keyword-form select {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            color: #e0e0e0;
+            padding: 8px 14px;
+            font-size: 13px;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .keyword-form select:focus { border-color: #06b6d4; }
+        .keyword-error {
+            color: #ef4444;
+            font-size: 12px;
+        }
+
+        /* ===== PAGINATION ===== */
+        .pagination {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 0;
+        }
+        .page-btn {
+            width: 32px;
+            height: 32px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            color: #94a3b8;
+            font-size: 13px;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+        .page-btn:hover:not(:disabled) {
+            border-color: #06b6d4;
+            color: #22d3ee;
+        }
+        .page-btn:disabled {
+            color: #334155;
+            cursor: default;
+            opacity: 0.5;
+        }
+        .page-info {
+            color: #64748b;
+            font-size: 13px;
+        }
+
+        /* ===== SKELETON ===== */
+        .skeleton {
+            background: #1e293b;
+            border-radius: 6px;
+            position: relative;
+            overflow: hidden;
+        }
+        .skeleton::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, #253347, transparent);
+            animation: shimmer 1.5s infinite;
+        }
+        .skeleton-card { height: 80px; border-radius: 10px; }
+        .skeleton-row { height: 44px; margin-bottom: 4px; }
+
+        /* ===== ERROR BANNER ===== */
+        .error-banner {
+            background: rgba(239,68,68,0.08);
+            border: 1px solid rgba(239,68,68,0.2);
+            color: #e0e0e0;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .error-banner button {
+            color: #e0e0e0;
+            background: rgba(239,68,68,0.15);
+            border: 1px solid rgba(239,68,68,0.3);
+            padding: 4px 14px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 13px;
+        }
+        .error-banner button:hover { background: rgba(239,68,68,0.25); }
+
+        /* ===== EMPTY STATE ===== */
+        .empty-state {
+            text-align: center;
+            padding: 32px 16px;
+            color: #475569;
+        }
+
+        /* ===== SPINNER ===== */
+        .spinner {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid #64748b;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+            vertical-align: middle;
+            margin-right: 4px;
+        }
+
+        /* ===== HIDDEN UTILITY ===== */
+        .hidden { display: none !important; }
+
+        /* ===== OVERVIEW ARTICLES TABLE ===== */
+        .overview-articles {
+            background: #1e293b;
+            border: 1px solid #2a3a52;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .overview-articles thead th {
+            background: #172033;
+            color: #64748b;
+            font-size: 12px;
+            font-weight: 500;
+            padding: 10px 16px;
+            text-align: left;
+        }
+        .overview-articles tbody tr {
+            border-bottom: 1px solid #253347;
+        }
+        .overview-articles tbody tr:last-child { border-bottom: none; }
+        .overview-articles tbody td {
+            padding: 10px 16px;
+            font-size: 13px;
+        }
+        .overview-articles tbody tr:hover {
+            background: rgba(6,182,212,0.04);
+        }
+
+        /* ===== TIME COLUMN ===== */
+        .time-col { color: #64748b; font-size: 12px; }
+
+        /* ===== ANIMATIONS ===== */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes slideDown {
+            from { opacity: 0; }
+            to   { opacity: 1; }
+        }
+        @keyframes toastSlideIn {
+            from { opacity: 0; transform: translateX(30px); }
+            to   { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes toastSlideOut {
+            from { opacity: 1; transform: translateX(0); }
+            to   { opacity: 0; transform: translateX(30px); }
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 0.4; }
+            50% { opacity: 1.0; }
+        }
+        @keyframes shimmer {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            .sidebar.open {
+                transform: translateX(0);
+            }
+            .main-content {
+                margin-left: 0;
+            }
+            .hamburger-btn {
+                display: block;
+            }
+            .stat-cards {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .top-bar {
+                padding: 0 16px;
+            }
+            .page-content {
+                padding: 16px;
+            }
+            .time-info {
+                display: none;
+            }
+        }
+        @media (max-width: 480px) {
+            .stat-cards {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* ===== Schedule Tab ===== */
+        .schedule-card {
+            background: #1e293b;
+            border: 1px solid #2a3a52;
+            border-radius: 12px;
+            padding: 20px 24px;
+            margin-bottom: 20px;
+        }
+        .schedule-card-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: #e0e0e0;
+            margin-bottom: 6px;
+        }
+        .schedule-card-desc {
+            color: #64748b;
+            font-size: 12px;
+            margin-bottom: 16px;
+            line-height: 1.6;
+        }
+        .schedule-form-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .schedule-form-label {
+            color: #94a3b8;
+            font-size: 13px;
+            white-space: nowrap;
+        }
+        .schedule-input {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            color: #e0e0e0;
+            padding: 8px 12px;
+            font-size: 13px;
+            font-family: inherit;
+            outline: none;
+            width: 200px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .schedule-input:focus {
+            border-color: #06b6d4;
+            box-shadow: 0 0 0 3px rgba(6,182,212,0.15);
+        }
+        .schedule-input::placeholder { color: #475569; }
+        .schedule-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            color: #94a3b8;
+            font-size: 13px;
+        }
+        .schedule-checkbox input[type="checkbox"] {
+            accent-color: #06b6d4;
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+        .schedule-site-name { font-weight: 500; color: #e0e0e0; }
+        .schedule-next-run { color: #06b6d4; font-size: 12px; white-space: nowrap; }
+        .schedule-actions { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+        .schedule-loading { text-align: center; padding: 32px; color: #64748b; font-size: 14px; }
+        .btn-danger {
+            background: rgba(239,68,68,0.12);
+            color: #f87171;
+            border: 1px solid rgba(239,68,68,0.2);
+        }
+        .btn-danger:hover { background: rgba(239,68,68,0.2); }
+        @media (max-width: 768px) {
+            .schedule-form-row { gap: 8px; }
+            .schedule-input { width: 160px; }
+            .schedule-actions { flex-direction: column; align-items: flex-start; gap: 4px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Sidebar Overlay (mobile) -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <!-- App Wrapper -->
+    <div class="app-wrapper">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <span class="sidebar-logo-icon">&#x1F4E1;</span>
+                    <span class="sidebar-logo-text">舆情监控</span>
+                </div>
+                <div class="sidebar-logo-sub">Sentiment Monitor</div>
+            </div>
+            <nav class="sidebar-nav">
+                <a class="nav-item active" onclick="switchTab('overview', this)">
+                    <span class="nav-item-icon">&#x1F4CA;</span>
+                    <span>概览</span>
+                </a>
+                <a class="nav-item" onclick="switchTab('articles', this)">
+                    <span class="nav-item-icon">&#x1F4F0;</span>
+                    <span>文章</span>
+                </a>
+                <a class="nav-item" onclick="switchTab('sites', this)">
+                    <span class="nav-item-icon">&#x1F310;</span>
+                    <span>站点</span>
+                </a>
+                <a class="nav-item" onclick="switchTab('keywords', this)">
+                    <span class="nav-item-icon">&#x1F511;</span>
+                    <span>关键词</span>
+                </a>
+                <a class="nav-item" onclick="switchTab('schedule', this)">
+                    <span class="nav-item-icon">&#x23F2;</span>
+                    <span>调度配置</span>
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="sidebar-version">v0.1.0</div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Top Bar -->
+            <header class="top-bar">
+                <div class="top-bar-left">
+                    <button class="hamburger-btn" id="hamburgerBtn" onclick="toggleSidebar()">&#9776;</button>
+                    <span id="status-dot" class="status-dot"></span>
+                    <span class="status-text" id="status-text">运行中</span>
+                    <div class="time-info">
+                        <span>上次: <span id="last-collect">暂无</span></span>
+                        <span class="time-sep">|</span>
+                        <span>下次: <span id="next-collect">未调度</span></span>
+                        <span class="time-sep">|</span>
+                        <span class="countdown-display" id="countdown">30s</span>
+                    </div>
+                </div>
+                <div class="top-bar-right">
+                    <button class="btn-secondary" id="push-btn" onclick="triggerPush()">
+                        推送钉钉 <span id="push-badge" class="push-badge hidden">0</span>
+                    </button>
+                    <button class="btn-primary" id="collect-btn" onclick="triggerCollect()">立即采集</button>
+                </div>
+            </header>
+
+            <!-- Page Content -->
+            <main class="page-content">
+                <!-- ===== TAB: OVERVIEW ===== -->
+                <div class="tab-panel active" id="tab-overview">
+                    <!-- Stat Cards -->
+                    <div class="stat-cards">
+                        <div class="stat-card">
+                            <div class="stat-card-icon icon-total">&#x1F4E5;</div>
+                            <div class="stat-card-body">
+                                <div id="skeleton-total" class="skeleton" style="height:28px;width:60px;margin-bottom:6px;"></div>
+                                <div id="content-total" class="hidden">
+                                    <div class="stat-card-value" id="stat-total">--</div>
+                                </div>
+                                <div class="stat-card-label">今日采集</div>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-card-icon icon-matched">&#x1F3AF;</div>
+                            <div class="stat-card-body">
+                                <div id="skeleton-matched" class="skeleton" style="height:28px;width:60px;margin-bottom:6px;"></div>
+                                <div id="content-matched" class="hidden">
+                                    <div class="stat-card-value" id="stat-matched">--</div>
+                                </div>
+                                <div class="stat-card-label">关键词命中</div>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-card-icon icon-high">&#x2B50;</div>
+                            <div class="stat-card-body">
+                                <div id="skeleton-high-score" class="skeleton" style="height:28px;width:60px;margin-bottom:6px;"></div>
+                                <div id="content-high-score" class="hidden">
+                                    <div class="stat-card-value" id="stat-high-score">--</div>
+                                </div>
+                                <div class="stat-card-label">高分文章 (&gt;=3)</div>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-card-icon icon-pushed">&#x2705;</div>
+                            <div class="stat-card-body">
+                                <div id="skeleton-pushed" class="skeleton" style="height:28px;width:60px;margin-bottom:6px;"></div>
+                                <div id="content-pushed" class="hidden">
+                                    <div class="stat-card-value" id="stat-pushed">--</div>
+                                </div>
+                                <div class="stat-card-label">已推送</div>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-card-icon icon-unsent">&#x1F4E8;</div>
+                            <div class="stat-card-body">
+                                <div id="skeleton-unsent" class="skeleton" style="height:28px;width:60px;margin-bottom:6px;"></div>
+                                <div id="content-unsent" class="hidden">
+                                    <div class="stat-card-value" id="stat-unsent">--</div>
+                                </div>
+                                <div class="stat-card-label">待推送</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Pushed Articles (overview) -->
+                    <div class="section-header">
+                        <div class="section-title">已推送钉钉文章</div>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>标题</th>
+                                    <th>来源</th>
+                                    <th>分类</th>
+                                    <th>评分</th>
+                                    <th>采集时间</th>
+                                </tr>
+                            </thead>
+                            <tbody id="overview-tbody">
+                                <tr id="overview-empty" class="hidden">
+                                    <td colspan="5" class="empty-state">暂无已推送文章</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <div class="pagination">
+                            <div></div>
+                            <div style="display:flex;align-items:center;gap:12px;">
+                                <button class="page-btn" id="ov-btn-prev" onclick="loadOverviewArticles(_overviewPage - 1)">&#x25C0;</button>
+                                <span class="page-info" id="ov-page-info">第 1 页 / 共 1 页</span>
+                                <button class="page-btn" id="ov-btn-next" onclick="loadOverviewArticles(_overviewPage + 1)">&#x25B6;</button>
+                            </div>
+                            <div></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ===== TAB: ARTICLES ===== -->
+                <div class="tab-panel" id="tab-articles">
+                    <div class="section-header">
+                        <div class="section-title">文章管理</div>
+                    </div>
+                    <div id="articles-error" class="error-banner hidden">
+                        <span>数据加载失败，请检查网络连接</span>
+                        <button onclick="fetchDashboardData()">重试</button>
+                    </div>
+                    <div class="filter-bar">
+                        <select id="filter-category">
+                            <option value="">全部分类</option>
+                            <option value="食品">食品</option>
+                            <option value="化妆品">化妆品</option>
+                            <option value="药品">药品</option>
+                            <option value="医疗器械">医疗器械</option>
+                            <option value="综合">综合</option>
+                        </select>
+                        <select id="filter-score">
+                            <option value="">全部评分</option>
+                            <option value="1">&gt;=1</option>
+                            <option value="2">&gt;=2</option>
+                            <option value="3">&gt;=3</option>
+                            <option value="4">&gt;=4</option>
+                            <option value="5">&gt;=5</option>
+                        </select>
+                        <input type="text" id="filter-search" placeholder="搜索文章标题...">
+                    </div>
+                    <div id="articles-skeleton">
+                        <div class="skeleton skeleton-row" style="border-radius:6px;"></div>
+                        <div class="skeleton skeleton-row" style="border-radius:6px;margin-top:4px;"></div>
+                        <div class="skeleton skeleton-row" style="border-radius:6px;margin-top:4px;"></div>
+                        <div class="skeleton skeleton-row" style="border-radius:6px;margin-top:4px;"></div>
+                        <div class="skeleton skeleton-row" style="border-radius:6px;margin-top:4px;"></div>
+                    </div>
+                    <div id="articles-content" class="hidden">
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th style="width:40px;"></th>
+                                        <th>标题</th>
+                                        <th>来源</th>
+                                        <th>分类</th>
+                                        <th>评分</th>
+                                        <th>采集时间</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="articles-tbody">
+                                    <tr id="articles-empty" class="hidden">
+                                        <td colspan="6" class="empty-state">暂无文章数据</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="pagination">
+                            <div></div>
+                            <div style="display:flex;align-items:center;gap:12px;">
+                                <button class="page-btn" id="btn-prev" onclick="loadArticles(currentPage - 1)">&#x25C0;</button>
+                                <span class="page-info" id="page-info">第 1 页 / 共 1 页</span>
+                                <button class="page-btn" id="btn-next" onclick="loadArticles(currentPage + 1)">&#x25B6;</button>
+                            </div>
+                            <div></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ===== TAB: SITES ===== -->
+                <div class="tab-panel" id="tab-sites">
+                    <div class="section-header">
+                        <div class="section-title">采集站点状态</div>
+                    </div>
+                    <div id="sites-skeleton">
+                        <div class="skeleton skeleton-row" style="border-radius:6px;"></div>
+                        <div class="skeleton skeleton-row" style="border-radius:6px;margin-top:4px;"></div>
+                        <div class="skeleton skeleton-row" style="border-radius:6px;margin-top:4px;"></div>
+                    </div>
+                    <div id="sites-content" class="hidden">
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>站点名称</th>
+                                        <th>今日采集</th>
+                                        <th>最后采集时间</th>
+                                        <th>状态</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="sites-tbody">
+                                    <tr id="sites-empty" class="hidden">
+                                        <td colspan="5" class="empty-state">暂无站点数据</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ===== TAB: KEYWORDS ===== -->
+                <div class="tab-panel" id="tab-keywords">
+                    <div class="section-header">
+                        <div class="section-title">关键词管理</div>
+                    </div>
+                    <div class="keyword-form">
+                        <input type="text" id="keyword-input" placeholder="输入关键词...">
+                        <select id="keyword-category">
+                            <option value="">无分类</option>
+                            <option value="食品">食品</option>
+                            <option value="化妆品">化妆品</option>
+                            <option value="药品">药品</option>
+                            <option value="医疗器械">医疗器械</option>
+                            <option value="综合">综合</option>
+                        </select>
+                        <button class="btn-primary" onclick="addKeyword()">添加</button>
+                        <span id="keyword-error" class="keyword-error" style="display:none;"></span>
+                    </div>
+                    <div id="keywords-skeleton">
+                        <div class="skeleton skeleton-row" style="border-radius:6px;"></div>
+                        <div class="skeleton skeleton-row" style="border-radius:6px;margin-top:4px;"></div>
+                    </div>
+                    <div id="keywords-content" class="hidden">
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>关键词</th>
+                                        <th>分类</th>
+                                        <th>状态</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="keywords-tbody">
+                                    <tr id="keywords-empty" class="hidden">
+                                        <td colspan="4" class="empty-state">暂无关键词</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="pagination" id="keyword-pagination" style="display:none;">
+                            <div></div>
+                            <div style="display:flex;align-items:center;gap:12px;">
+                                <button class="page-btn" onclick="keywordPage(-1)" id="kw-prev">&#x25C0;</button>
+                                <span class="page-info" id="kw-page-info"></span>
+                                <button class="page-btn" onclick="keywordPage(1)" id="kw-next">&#x25B6;</button>
+                            </div>
+                            <div></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ===== Schedule Tab ===== -->
+                <div class="tab-panel" id="tab-schedule">
+                    <!-- Global Default -->
+                    <div class="schedule-card">
+                        <div class="schedule-card-title">&#x2699;&#xFE0F; 全局默认调度</div>
+                        <div class="schedule-card-desc">未单独配置的站点将使用此调度策略。修改后所有使用默认调度的未配置站点立即生效。</div>
+                        <div class="schedule-form-row">
+                            <span class="schedule-form-label">cron 表达式：</span>
+                            <input type="text" id="default-cron" class="schedule-input" placeholder="0 9,14,18 * * *" value="0 9,14,18 * * *">
+                            <label class="schedule-checkbox">
+                                <input type="checkbox" id="default-enabled" checked>
+                                <span>启用</span>
+                            </label>
+                            <button class="btn btn-primary btn-sm" onclick="saveDefault()">保存默认</button>
+                        </div>
+                    </div>
+
+                    <!-- Add Site Schedule -->
+                    <div class="schedule-card">
+                        <div class="schedule-card-title">&#x2795; 新增站点调度</div>
+                        <div class="schedule-card-desc">为未配置的站点添加独立的调度策略。</div>
+                        <div class="schedule-form-row">
+                            <span class="schedule-form-label">站点名称：</span>
+                            <input type="text" id="new-site-name" class="schedule-input" style="width:160px" placeholder="例如：nmpa">
+                            <span class="schedule-form-label">cron 表达式：</span>
+                            <input type="text" id="new-site-cron" class="schedule-input" placeholder="0 9,14,18 * * *">
+                            <label class="schedule-checkbox">
+                                <input type="checkbox" id="new-site-enabled" checked>
+                                <span>启用</span>
+                            </label>
+                            <button class="btn btn-primary btn-sm" onclick="addSite()">添加</button>
+                        </div>
+                    </div>
+
+                    <!-- Sites Schedule Table -->
+                    <div class="table-container">
+                        <table id="schedule-sites-table" style="display:none">
+                            <thead>
+                                <tr>
+                                    <th style="width:180px">站点</th>
+                                    <th style="width:200px">cron 表达式</th>
+                                    <th style="width:60px">启用</th>
+                                    <th style="width:180px">下次运行</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="schedule-tbody"></tbody>
+                        </table>
+                        <div id="schedule-loading" class="schedule-loading">
+                            <span class="spinner" style="display:inline-block;width:20px;height:20px;border:2px solid #334155;border-top-color:#06b6d4;border-radius:50%;vertical-align:middle;margin-right:8px"></span>
+                            加载中...
+                        </div>
+                    </div>
+                </div>
+
+            </main>
+        </div>
+    </div>
+
+<script>
+// --- Global State ---
+let currentPage = 1;
+let refreshTimer = null;
+let countdownSeconds = 30;
+let isCollecting = false;
+let isFirstLoad = true;
+let keywordCurrentPage = 1;
+
+// --- Keep a reference to all articles for overview rendering ---
+let _allArticlesData = null;
+
+// --- Helpers ---
+function formatTime(isoString) {
+    if (!isoString) return '--';
+    const d = new Date(isoString);
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mi = String(d.getMinutes()).padStart(2, '0');
+    return mm + '-' + dd + ' ' + hh + ':' + mi;
+}
+
+function formatTimeShort(isoString) {
+    if (!isoString) return '--';
+    const d = new Date(isoString);
+    return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+}
+
+function formatTimeFull(isoString) {
+    if (!isoString) return '暂无';
+    const d = new Date(isoString);
+    const y = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mi = String(d.getMinutes()).padStart(2, '0');
+    return y + '-' + mm + '-' + dd + ' ' + hh + ':' + mi;
+}
+
+function getScoreColor(score) {
+    const colors = { 1: '#ef4444', 2: '#f97316', 3: '#f59e0b', 4: '#22c55e', 5: '#10b981' };
+    return colors[score] || '#64748b';
+}
+
+function getScoreDotClass(filledIndex, score) {
+    if (filledIndex <= score) return 'score-dot filled-' + score;
+    return 'score-dot';
+}
+
+function getCategoryBadgeClass(category) {
+    const map = {
+        '食品': 'badge-food',
+        '化妆品': 'badge-cosmetics',
+        '药品': 'badge-drug',
+        '医疗器械': 'badge-device',
+        '综合': 'badge-general'
+    };
+    return map[category] || 'badge-general';
+}
+
+function renderScoreDots(score) {
+    let html = '<div class="score-display"><div class="score-dots">';
+    for (let i = 1; i <= 5; i++) {
+        html += '<span class="' + getScoreDotClass(i, score) + '"></span>';
+    }
+    html += '</div><span class="score-num score-' + score + '">' + score + '</span></div>';
+    return html;
+}
+
+function showSkeleton(prefix) {
+    const skel = document.getElementById(prefix + '-skeleton');
+    const content = document.getElementById(prefix + '-content');
+    if (skel) skel.classList.remove('hidden');
+    if (content) content.classList.add('hidden');
+}
+
+function hideSkeleton(prefix) {
+    const skel = document.getElementById(prefix + '-skeleton');
+    const content = document.getElementById(prefix + '-content');
+    if (skel) skel.classList.add('hidden');
+    if (content) content.classList.remove('hidden');
+}
+
+function showError(id) {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('hidden');
+}
+
+function hideError(id) {
+    const el = document.getElementById(id);
+    if (el) el.classList.add('hidden');
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// --- Tab Switching ---
+function switchTab(tabId, navEl) {
+    // Hide all tab panels
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    // Show target
+    const target = document.getElementById('tab-' + tabId);
+    if (target) target.classList.add('active');
+    // Update nav active state
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    if (navEl) navEl.classList.add('active');
+    // Close mobile sidebar
+    closeSidebar();
+    // Load data on first visit
+    if (tabId === 'schedule') loadSchedule();
+}
+
+// --- Article Row Expand ---
+let _currentExpandedId = null;
+
+function toggleArticleExpand(id) {
+    const expandRow = document.getElementById('expand-' + id);
+    const arrow = document.getElementById('arrow-' + id);
+    if (!expandRow) return;
+
+    // Close previous if different
+    if (_currentExpandedId !== null && _currentExpandedId !== id) {
+        const prevRow = document.getElementById('expand-' + _currentExpandedId);
+        const prevArrow = document.getElementById('arrow-' + _currentExpandedId);
+        if (prevRow) prevRow.classList.remove('visible');
+        if (prevArrow) prevArrow.classList.remove('open');
+    }
+
+    if (expandRow.classList.contains('visible')) {
+        expandRow.classList.remove('visible');
+        if (arrow) arrow.classList.remove('open');
+        _currentExpandedId = null;
+    } else {
+        expandRow.classList.add('visible');
+        if (arrow) arrow.classList.add('open');
+        _currentExpandedId = id;
+    }
+}
+
+// --- Render Overview Articles (pushed to DingTalk) ---
+let _pushedArticlesData = null;
+let _overviewPage = 1;
+
+async function fetchOverviewArticles() {
+    try {
+        const resp = await fetch('/api/dashboard/articles?page=' + _overviewPage + '&dingtalk_sent=true');
+        if (resp && resp.ok) {
+            const data = await resp.json();
+            _pushedArticlesData = data;
+            renderOverviewArticles();
+        }
+    } catch (e) {
+        console.error('Overview fetch error:', e);
+    }
+}
+
+function loadOverviewArticles(page) {
+    _overviewPage = page;
+    fetchOverviewArticles();
+}
+
+function renderOverviewArticles() {
+    const tbody = document.getElementById('overview-tbody');
+    if (!tbody) return;
+
+    // Remove everything except overview-empty
+    Array.from(tbody.querySelectorAll('tr')).forEach(tr => {
+        if (tr.id !== 'overview-empty') tr.remove();
+    });
+
+    const emptyRow = document.getElementById('overview-empty');
+
+    if (!_pushedArticlesData || !_pushedArticlesData.articles || _pushedArticlesData.articles.length === 0) {
+        emptyRow.classList.remove('hidden');
+    } else {
+        emptyRow.classList.add('hidden');
+
+        _pushedArticlesData.articles.forEach(a => {
+            const tr = document.createElement('tr');
+            const catBadge = '<span class="badge ' + getCategoryBadgeClass(a.category) + '">' + escapeHtml(a.category || '未分类') + '</span>';
+            tr.innerHTML =
+                '<td><a class="article-link" href="' + escapeHtml(a.url) + '" target="_blank">' + escapeHtml(a.title) + '</a></td>' +
+                '<td>' + escapeHtml(a.source) + '</td>' +
+                '<td>' + catBadge + '</td>' +
+                '<td>' + renderScoreDots(a.score) + '</td>' +
+                '<td class="time-col">' + formatTime(a.collected_at) + '</td>';
+            tbody.appendChild(tr);
+        });
+    }
+
+    // Pagination
+    const total = _pushedArticlesData ? _pushedArticlesData.total : 0;
+    const page = _pushedArticlesData ? _pushedArticlesData.page : 1;
+    const totalPages = Math.ceil(total / 20) || 1;
+    _overviewPage = page;
+
+    const pageInfo = document.getElementById('ov-page-info');
+    const btnPrev = document.getElementById('ov-btn-prev');
+    const btnNext = document.getElementById('ov-btn-next');
+    if (pageInfo) pageInfo.textContent = '第 ' + page + ' 页 / 共 ' + totalPages + ' 页';
+    if (btnPrev) btnPrev.disabled = page <= 1;
+    if (btnNext) btnNext.disabled = page >= totalPages;
+}
+
+// --- Core Data Fetch ---
+async function fetchDashboardData() {
+    try {
+        const [statsResp, articlesResp, sitesResp, keywordsResp] = await Promise.all([
+            fetch('/api/dashboard/stats').catch(() => null),
+            fetch('/api/dashboard/articles?page=' + currentPage).catch(() => null),
+            fetch('/api/dashboard/sites').catch(() => null),
+            fetch('/api/keywords?page=' + keywordCurrentPage).catch(() => null),
+        ]);
+
+        if (statsResp && statsResp.ok) {
+            const data = await statsResp.json();
+            updateStats(data);
+            hideError('articles-error');
+        }
+
+        if (articlesResp && articlesResp.ok) {
+            const data = await articlesResp.json();
+            _allArticlesData = data;
+            updateArticles(data);
+        }
+
+        if (sitesResp && sitesResp.ok) {
+            const data = await sitesResp.json();
+            updateSites(data);
+        }
+
+        if (keywordsResp && keywordsResp.ok) {
+            const data = await keywordsResp.json();
+            updateKeywords(data.keywords || data);
+            updateKeywordPagination(data);
+        }
+
+        if (isFirstLoad) {
+            hideSkeleton('articles');
+            hideSkeleton('sites');
+            hideSkeleton('keywords');
+            document.getElementById('skeleton-total').classList.add('hidden');
+            document.getElementById('content-total').classList.remove('hidden');
+            document.getElementById('skeleton-matched').classList.add('hidden');
+            document.getElementById('content-matched').classList.remove('hidden');
+            document.getElementById('skeleton-high-score').classList.add('hidden');
+            document.getElementById('content-high-score').classList.remove('hidden');
+            document.getElementById('skeleton-pushed').classList.add('hidden');
+            document.getElementById('content-pushed').classList.remove('hidden');
+            document.getElementById('skeleton-unsent').classList.add('hidden');
+            document.getElementById('content-unsent').classList.remove('hidden');
+            isFirstLoad = false;
+        }
+
+        // Fetch pushed articles for overview tab
+        fetchOverviewArticles();
+
+        countdownSeconds = 30;
+    } catch (e) {
+        console.error('Dashboard fetch error:', e);
+        showError('articles-error');
+    }
+}
+
+// --- Update Functions ---
+function updateStats(data) {
+    document.getElementById('stat-total').textContent = data.today_total;
+    document.getElementById('stat-matched').textContent = data.today_matched;
+    document.getElementById('stat-high-score').textContent = data.today_high_score;
+    document.getElementById('stat-pushed').textContent = data.today_pushed || 0;
+
+    // DingTalk unsent count
+    const unsent = data.dingtalk_unsent || 0;
+    document.getElementById('stat-unsent').textContent = unsent;
+
+    const pushBadge = document.getElementById('push-badge');
+    if (unsent > 0) {
+        pushBadge.textContent = unsent;
+        pushBadge.classList.remove('hidden');
+    } else {
+        pushBadge.classList.add('hidden');
+    }
+
+    const dot = document.getElementById('status-dot');
+    const text = document.getElementById('status-text');
+    dot.className = 'status-dot';
+
+    if (data.collecting) {
+        dot.classList.add('collecting');
+        text.textContent = '采集中';
+    } else if (data.scheduler_running) {
+        text.textContent = '运行中';
+    } else {
+        dot.classList.add('error');
+        text.textContent = '异常';
+    }
+
+    const lastEl = document.getElementById('last-collect');
+    lastEl.textContent = data.last_result ? formatTimeFull(data.last_result.completed_at || new Date().toISOString()) : '暂无';
+    document.getElementById('next-collect').textContent = data.next_run ? formatTime(data.next_run) : '未调度';
+
+    const btn = document.getElementById('collect-btn');
+    const pushBtn = document.getElementById('push-btn');
+    if (data.collecting) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span> 采集中...';
+        if (pushBtn) pushBtn.disabled = true;
+        isCollecting = true;
+        document.querySelectorAll('.site-collect-btn').forEach(b => b.disabled = true);
+    } else if (!btn.disabled) {
+        btn.textContent = '立即采集';
+    }
+}
+
+function updateArticles(data) {
+    const tbody = document.getElementById('articles-tbody');
+    const emptyRow = document.getElementById('articles-empty');
+    // Remove all non-empty rows
+    Array.from(tbody.children).forEach(child => {
+        if (child.id !== 'articles-empty') tbody.removeChild(child);
+    });
+
+    if (!data.articles || data.articles.length === 0) {
+        emptyRow.classList.remove('hidden');
+    } else {
+        emptyRow.classList.add('hidden');
+        data.articles.forEach(a => {
+            const catBadge = '<span class="badge ' + getCategoryBadgeClass(a.category) + '">' + escapeHtml(a.category || '未分类') + '</span>';
+
+            // Main row
+            const tr = document.createElement('tr');
+            tr.className = 'article-row-main';
+            tr.setAttribute('onclick', 'toggleArticleExpand(' + a.id + ')');
+            tr.innerHTML =
+                '<td><span class="expand-arrow" id="arrow-' + a.id + '">&#x25B6;</span></td>' +
+                '<td><a class="article-link" href="' + escapeHtml(a.url) + '" target="_blank" onclick="event.stopPropagation()">' + escapeHtml(a.title) + '</a></td>' +
+                '<td>' + escapeHtml(a.source) + '</td>' +
+                '<td>' + catBadge + '</td>' +
+                '<td>' + renderScoreDots(a.score) + '</td>' +
+                '<td class="time-col">' + formatTime(a.collected_at) + '</td>';
+            tbody.appendChild(tr);
+
+            // Expand row
+            const expandTr = document.createElement('tr');
+            expandTr.className = 'expand-row';
+            expandTr.id = 'expand-' + a.id;
+            const summaryText = a.summary ? escapeHtml(a.summary) : '<span style="color:#475569;">暂无AI摘要</span>';
+            expandTr.innerHTML =
+                '<td colspan="6"><div class="expand-content">' +
+                '<div class="expand-label">AI 分析摘要</div>' +
+                '<div class="expand-text">' + summaryText + '</div>' +
+                '</div></td>';
+            tbody.appendChild(expandTr);
+        });
+    }
+
+    const totalPages = Math.ceil(data.total / 20) || 1;
+    document.getElementById('page-info').textContent = '第 ' + data.page + ' 页 / 共 ' + totalPages + ' 页';
+    document.getElementById('btn-prev').disabled = data.page <= 1;
+    document.getElementById('btn-next').disabled = data.page >= totalPages;
+    currentPage = data.page;
+}
+
+function updateSites(data) {
+    const tbody = document.getElementById('sites-tbody');
+    const emptyRow = document.getElementById('sites-empty');
+    Array.from(tbody.children).forEach(child => {
+        if (child.id !== 'sites-empty') tbody.removeChild(child);
+    });
+
+    if (!data || data.length === 0) {
+        emptyRow.classList.remove('hidden');
+    } else {
+        emptyRow.classList.add('hidden');
+        data.forEach(s => {
+            const tr = document.createElement('tr');
+            const dotClass = s.today_count > 0 ? 'active' : '';
+            const btnDisabled = isCollecting ? ' disabled' : '';
+            tr.innerHTML =
+                '<td>' + escapeHtml(s.source) + '</td>' +
+                '<td>' + s.today_count + '</td>' +
+                '<td class="time-col">' + formatTimeShort(s.last_collected) + '</td>' +
+                '<td><span class="site-dot ' + dotClass + '"></span></td>' +
+                '<td><button class="site-collect-btn"' + btnDisabled + ' onclick="triggerSiteCollect(\'' + escapeHtml(s.source) + '\', this)">采集</button></td>';
+            tbody.appendChild(tr);
+        });
+    }
+}
+
+function updateKeywords(data) {
+    const tbody = document.getElementById('keywords-tbody');
+    const emptyRow = document.getElementById('keywords-empty');
+    Array.from(tbody.children).forEach(child => {
+        if (child.id !== 'keywords-empty') tbody.removeChild(child);
+    });
+
+    if (!data || data.length === 0) {
+        emptyRow.classList.remove('hidden');
+    } else {
+        emptyRow.classList.add('hidden');
+        data.forEach(k => {
+            const tr = document.createElement('tr');
+            const statusBadge = k.enabled
+                ? '<span class="badge badge-enabled">启用</span>'
+                : '<span class="badge badge-disabled">禁用</span>';
+            tr.innerHTML =
+                '<td>' + escapeHtml(k.keyword) + '</td>' +
+                '<td>' + escapeHtml(k.category || '无分类') + '</td>' +
+                '<td>' + statusBadge + '</td>' +
+                '<td><button class="btn-danger-sm" onclick="deleteKeyword(' + k.id + ')">删除</button></td>';
+            tbody.appendChild(tr);
+        });
+    }
+}
+
+function updateKeywordPagination(data) {
+    if (!data || !data.total_pages) return;
+    const el = document.getElementById('keyword-pagination');
+    const info = document.getElementById('kw-page-info');
+    const prev = document.getElementById('kw-prev');
+    const next = document.getElementById('kw-next');
+    if (data.total_pages <= 1) { el.style.display = 'none'; return; }
+    el.style.display = 'flex';
+    keywordCurrentPage = data.page;
+    info.textContent = data.page + ' / ' + data.total_pages + ' 页 (共' + data.total + '个)';
+    prev.disabled = data.page <= 1;
+    next.disabled = data.page >= data.total_pages;
+}
+
+// --- Manual Collect ---
+async function triggerCollect() {
+    const btn = document.getElementById('collect-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> 采集中...';
+    isCollecting = true;
+
+    try { await fetch('/api/collect', { method: 'POST' }); } catch (e) {}
+
+    let pollCount = 0;
+    const poll = setInterval(async () => {
+        pollCount++;
+        if (pollCount > 150) { clearInterval(poll); restoreButton(); return; }
+        try {
+            const resp = await fetch('/api/dashboard/stats');
+            const stats = await resp.json();
+            if (!stats.collecting) {
+                clearInterval(poll);
+                restoreButton();
+                fetchDashboardData();
+            }
+        } catch (e) {}
+    }, 2000);
+}
+
+async function triggerPush() {
+    const btn = document.getElementById('push-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> 推送中...';
+
+    try {
+        const resp = await fetch('/api/dingtalk/push', { method: 'POST' });
+        const data = await resp.json();
+        if (data.status === 'ok') {
+            const msg = '推送完成: ' + data.pushed + ' 篇成功' + (data.failed > 0 ? ', ' + data.failed + ' 篇失败' : '');
+            showToast(msg, data.failed > 0 ? 'warning' : 'success');
+        } else {
+            showToast('推送失败: ' + (data.message || '未知错误'), 'error');
+        }
+    } catch (e) {
+        showToast('推送请求失败', 'error');
+    }
+
+    btn.disabled = false;
+    btn.innerHTML = '推送钉钉 <span id="push-badge" class="push-badge hidden">0</span>';
+    fetchDashboardData();
+}
+
+function showToast(message, type) {
+    const container = document.getElementById('toastContainer');
+    if (!container) return;
+    const toast = document.createElement('div');
+    toast.className = 'toast-item toast-' + (type || 'success');
+    toast.textContent = message;
+    container.appendChild(toast);
+    setTimeout(() => {
+        toast.classList.add('toast-out');
+        setTimeout(() => toast.remove(), 300);
+    }, 4000);
+}
+
+function restoreButton() {
+    const btn = document.getElementById('collect-btn');
+    const pushBtn = document.getElementById('push-btn');
+    btn.disabled = false;
+    btn.textContent = '立即采集';
+    if (pushBtn) pushBtn.disabled = false;
+    isCollecting = false;
+    document.querySelectorAll('.site-collect-btn').forEach(b => b.disabled = false);
+}
+
+async function triggerSiteCollect(siteName, btn) {
+    btn.disabled = true;
+    btn.textContent = '采集中...';
+    isCollecting = true;
+    document.getElementById('collect-btn').disabled = true;
+    document.querySelectorAll('.site-collect-btn').forEach(b => { if (b !== btn) b.disabled = true; });
+
+    try { await fetch('/api/collect/' + encodeURIComponent(siteName), { method: 'POST' }); } catch (e) {}
+
+    let pollCount = 0;
+    const poll = setInterval(async () => {
+        pollCount++;
+        if (pollCount > 150) { clearInterval(poll); restoreButton(); return; }
+        try {
+            const resp = await fetch('/api/dashboard/stats');
+            const stats = await resp.json();
+            if (!stats.collecting) {
+                clearInterval(poll);
+                restoreButton();
+                fetchDashboardData();
+            }
+        } catch (e) {}
+    }, 2000);
+}
+
+// --- Keywords CRUD ---
+async function addKeyword() {
+    const input = document.getElementById('keyword-input');
+    const categorySelect = document.getElementById('keyword-category');
+    const keyword = input.value.trim();
+    if (!keyword) return;
+
+    const body = { keyword: keyword };
+    const cat = categorySelect.value;
+    if (cat) body.category = cat;
+
+    try {
+        const resp = await fetch('/api/keywords', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        });
+        if (resp.status === 409) {
+            const errEl = document.getElementById('keyword-error');
+            errEl.textContent = '关键词已存在';
+            errEl.style.display = 'inline';
+            setTimeout(() => { errEl.style.display = 'none'; }, 3000);
+            return;
+        }
+        input.value = '';
+        fetchKeywords();
+    } catch (e) {}
+}
+
+async function deleteKeyword(id) {
+    try {
+        const resp = await fetch('/api/keywords/' + id, { method: 'DELETE' });
+        if (resp.ok) fetchKeywords();
+    } catch (e) {}
+}
+
+async function fetchKeywords() {
+    try {
+        const resp = await fetch('/api/keywords?page=' + keywordCurrentPage);
+        if (resp.ok) {
+            const data = await resp.json();
+            updateKeywords(data.keywords || data);
+            updateKeywordPagination(data);
+        }
+    } catch (e) {}
+}
+
+// --- Articles Filter/Search ---
+function loadArticles(page) {
+    currentPage = page;
+    const category = document.getElementById('filter-category').value;
+    const minScore = document.getElementById('filter-score').value;
+    const search = document.getElementById('filter-search').value.trim();
+
+    let url = '/api/dashboard/articles?page=' + page;
+    if (category) url += '&category=' + encodeURIComponent(category);
+    if (minScore) url += '&min_score=' + minScore;
+    if (search) url += '&search=' + encodeURIComponent(search);
+
+    fetch(url)
+        .then(resp => resp.json())
+        .then(data => {
+            _allArticlesData = data;
+            updateArticles(data);
+        })
+        .catch(() => showError('articles-error'));
+}
+
+// --- Keyword Pagination ---
+async function keywordPage(delta) {
+    keywordCurrentPage += delta;
+    if (keywordCurrentPage < 1) keywordCurrentPage = 1;
+    const resp = await fetch('/api/keywords?page=' + keywordCurrentPage);
+    if (resp.ok) {
+        const data = await resp.json();
+        updateKeywords(data.keywords || []);
+        updateKeywordPagination(data);
+    }
+}
+
+// --- Auto Refresh ---
+function startAutoRefresh() {
+    countdownSeconds = 30;
+    refreshTimer = setInterval(() => {
+        countdownSeconds--;
+        const el = document.getElementById('countdown');
+        if (el) el.textContent = countdownSeconds + 's';
+        if (countdownSeconds <= 0) {
+            fetchDashboardData();
+            countdownSeconds = 30;
+        }
+    }, 1000);
+}
+
+// --- Sidebar Toggle (mobile) ---
+function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    sidebar.classList.toggle('open');
+    overlay.classList.toggle('visible');
+}
+
+function closeSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    sidebar.classList.remove('open');
+    overlay.classList.remove('visible');
+}
+
+// --- Init ---
+document.addEventListener('DOMContentLoaded', () => {
+    fetchDashboardData();
+    startAutoRefresh();
+
+    document.getElementById('filter-category').addEventListener('change', () => loadArticles(1));
+    document.getElementById('filter-score').addEventListener('change', () => loadArticles(1));
+
+    let searchTimeout;
+    document.getElementById('filter-search').addEventListener('input', () => {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => loadArticles(1), 300);
+    });
+
+    document.getElementById('keyword-input').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') addKeyword();
+    });
+
+    // Sidebar overlay click closes sidebar
+    document.getElementById('sidebarOverlay').addEventListener('click', closeSidebar);
+});
+
+// --- Schedule Tab ---
+const SCHEDULE_API = '/api/schedule';
+let _scheduleAllSites = {};
+
+async function loadSchedule() {
+    const loading = document.getElementById('schedule-loading');
+    const table = document.getElementById('schedule-sites-table');
+    loading.style.display = 'block';
+    table.style.display = 'none';
+    try {
+        const res = await fetch(`${SCHEDULE_API}/sites`);
+        const data = await res.json();
+        renderScheduleDefault(data.default);
+        renderScheduleSites(data.sites, data.default);
+    } catch (e) {
+        loading.textContent = '加载失败: ' + escapeHtml(e.message);
+    }
+}
+
+function renderScheduleDefault(cfg) {
+    document.getElementById('default-cron').value = cfg.cron_expression;
+    document.getElementById('default-enabled').checked = cfg.enabled;
+}
+
+function renderScheduleSites(sites, defaultCfg) {
+    document.getElementById('schedule-loading').style.display = 'none';
+    document.getElementById('schedule-sites-table').style.display = '';
+    const tbody = document.getElementById('schedule-tbody');
+    tbody.innerHTML = '';
+    _scheduleAllSites = sites;
+    const entries = Object.entries(sites).sort((a, b) => a[0].localeCompare(b[0], 'zh'));
+    for (const [name, cfg] of entries) {
+        const cron = cfg.cron_expression || defaultCfg.cron_expression;
+        const enabled = cfg.enabled !== false;
+        const nextRun = cfg.next_run
+            ? new Date(cfg.next_run).toLocaleString('zh-CN')
+            : '—';
+        const safeName = encodeURIComponent(name);
+        const checkedAttr = enabled ? 'checked' : '';
+        const tr = document.createElement('tr');
+        tr.setAttribute('data-site', name);
+        tr.innerHTML =
+            '<td><span class="schedule-site-name">' + escapeHtml(name) + '</span></td>' +
+            '<td><input type="text" class="schedule-input" id="cron-' + safeName + '" value="' + escapeHtml(cron || '') + '"></td>' +
+            '<td><input type="checkbox" id="en-' + safeName + '" ' + checkedAttr + '></td>' +
+            '<td class="schedule-next-run">' + escapeHtml(nextRun) + '</td>' +
+            '<td><div class="schedule-actions">' +
+            '<button class="btn btn-primary btn-sm" onclick="saveSite(\'' + safeName + '\', \'' + escapeHtml(name) + '\')">保存</button>' +
+            '<button class="btn btn-secondary btn-sm" onclick="collectNow(\'' + safeName + '\', \'' + escapeHtml(name) + '\')">立即采集</button>' +
+            '<button class="btn btn-danger btn-sm" onclick="resetSite(\'' + safeName + '\', \'' + escapeHtml(name) + '\')">重置默认</button>' +
+            '</div></td>';
+        tbody.appendChild(tr);
+    }
+}
+
+async function saveDefault() {
+    const cron = document.getElementById('default-cron').value.trim();
+    const enabled = document.getElementById('default-enabled').checked;
+    try {
+        const res = await fetch(`${SCHEDULE_API}/__default__`, {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({cron_expression: cron, enabled}),
+        });
+        if (res.ok) { showToast('全局默认已保存', 'success'); loadSchedule(); }
+        else { const d = await res.json(); showToast('保存失败: ' + (d.error || ''), 'error'); }
+    } catch (e) { showToast('保存失败: ' + e, 'error'); }
+}
+
+async function saveSite(safeName, name) {
+    const cron = document.getElementById('cron-' + safeName).value.trim();
+    const enabled = document.getElementById('en-' + safeName).checked;
+    try {
+        const res = await fetch(`${SCHEDULE_API}/${safeName}`, {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({cron_expression: cron, enabled}),
+        });
+        if (res.ok) { showToast(name + ' 已保存', 'success'); loadSchedule(); }
+        else { const d = await res.json(); showToast('保存失败: ' + (d.error || ''), 'error'); }
+    } catch (e) { showToast('保存失败: ' + e, 'error'); }
+}
+
+async function collectNow(safeName, name) {
+    try {
+        const res = await fetch('/api/collect/' + safeName, {method: 'POST'});
+        const d = await res.json();
+        if (d.status === 'accepted') {
+            showToast(name + ' 采集已开始', 'info');
+        } else {
+            showToast('采集失败: ' + (d.detail || d.error || ''), 'error');
+        }
+    } catch (e) { showToast('采集失败: ' + e, 'error'); }
+}
+
+async function resetSite(safeName, name) {
+    try {
+        const res = await fetch(`${SCHEDULE_API}/${safeName}`, {method: 'DELETE'});
+        if (res.ok) { showToast(name + ' 已重置为默认', 'info'); loadSchedule(); }
+        else { const d = await res.json(); showToast('重置失败: ' + (d.error || ''), 'error'); }
+    } catch (e) { showToast('重置失败: ' + e, 'error'); }
+}
+
+async function addSite() {
+    const name = document.getElementById('new-site-name').value.trim();
+    const cron = document.getElementById('new-site-cron').value.trim();
+    const enabled = document.getElementById('new-site-enabled').checked;
+    if (!name) { showToast('请输入站点名称', 'error'); return; }
+    if (!cron) { showToast('请输入 cron 表达式', 'error'); return; }
+    try {
+        const res = await fetch(`${SCHEDULE_API}/${encodeURIComponent(name)}`, {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({cron_expression: cron, enabled}),
+        });
+        if (res.ok) {
+            showToast('已添加: ' + name, 'success');
+            document.getElementById('new-site-name').value = '';
+            document.getElementById('new-site-cron').value = '';
+            loadSchedule();
+        } else {
+            const d = await res.json();
+            showToast('添加失败: ' + (d.error || ''), 'error');
+        }
+    } catch (e) { showToast('添加失败: ' + e, 'error'); }
+}
+</script>
+</body>
+</html>

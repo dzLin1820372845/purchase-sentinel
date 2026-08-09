@@ -1,0 +1,35 @@
+# Planning and workflow
+.planning/
+.workbuddy/
+
+# Tests
+tests/
+
+# Environment and secrets
+.env
+.env.*
+环境凭据.md
+
+# Git
+.git/
+.gitignore
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# IDE
+.vscode/
+.idea/
+
+# Documentation (not needed in container)
+*.md
+!app/templates/**/*.md
+
+# Misc
+=3.11.0
+*.xlsx
+*.log

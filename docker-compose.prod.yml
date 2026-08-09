@@ -1,0 +1,10 @@
+# 采购舆情检测系统 - 生产环境 Docker Compose 覆盖配置
+# 用于 NAS (Linux) 部署，使用 host 网络模式解决政府站点 TLS 兼容问题
+# 使用方式: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+
+services:
+  app:
+    ports: !reset {}
+    network_mode: host
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-sentiment}:${POSTGRES_PASSWORD:-sentiment_dev}@localhost:${PG_PORT:-5432}/${POSTGRES_DB:-sentiment}

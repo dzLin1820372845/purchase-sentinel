@@ -1,0 +1,160 @@
+# 采集站点注册表
+# 新增站点步骤：1. 在 sites/ 目录创建策略文件  2. 在此文件添加配置
+# 策略路径格式：模块路径:类名（如 sites.nmpa:NMPAStrategy）
+
+sites:
+  - name: 国家药监局
+    url: https://www.nmpa.gov.cn
+    strategy: sites.nmpa:NMPAStrategy
+    enabled: true
+    categories:
+      - 药品-监管工作
+      - 药品-公告通告
+      - 药品-法规文件
+      - 药品-政策解读
+      - 医疗器械-监管工作
+      - 医疗器械-公告通知
+      - 医疗器械-法规文件
+      - 医疗器械-政策解读
+      - 医疗器械-飞行检查
+      - 医疗器械-召回
+      - 化妆品-监管工作
+      - 化妆品-法规文件
+      - 化妆品-政策解读
+      - 化妆品-公告通知
+      - 化妆品-抽检通告
+      - 化妆品-飞行检查
+
+  - name: 上海药监局
+    url: https://yjj.sh.gov.cn
+    strategy: sites.sh_yjj:ShanghaiYJJStrategy
+    enabled: true
+    categories:
+      - 最新公开信息-综合
+      - 最新公开信息-药品
+      - 最新公开信息-化妆品
+      - 最新公开信息-医疗器械
+      - 监管信息-许可信息公告
+      - 监管信息-监督抽检信息
+
+  - name: 国家卫生健康委员会
+    url: https://www.nhc.gov.cn
+    strategy: sites.nhc:NHCStrategy
+    enabled: true
+    categories:
+      - 政策法规-法律法规
+      - 政策法规-规范性文件
+      - 政策法规-政策解读
+      - 财政管理-财政预决算
+      - 建议提案-建议
+      - 建议提案-提案
+
+  - name: 国家食品药品审核查验中心
+    url: https://www.cfdi.org.cn/cfdi
+    strategy: sites.cfdi:CFDIStrategy
+    enabled: true
+    categories:
+      - 最新消息
+      - 通知公告
+      - 工作动态
+      - 政策法规-药品政策法规
+      - 政策法规-医疗器械政策法规
+      - 政策法规-化妆品政策法规
+      - 检查专栏-药品检查
+      - 检查专栏-医疗器械检查
+      - 检查专栏-化妆品检查
+      - 检查专栏-境外检查
+
+  - name: 海关总署
+    url: http://www.customs.gov.cn
+    strategy: sites.customs:CustomsStrategy
+    enabled: true
+    categories:
+      - 新闻发布-国务院要闻
+      - 新闻发布-要闻聚焦
+      - 新闻发布-今日海关
+      - 新闻发布-媒体聚焦
+      - 新闻发布-重要会议
+      - 新闻发布-新闻发布会
+      - 新闻发布-各关新闻
+      - 政务公开-海关法规
+      - 政务公开-最新文件
+      - 政务公开-政策解读
+
+  - name: 食品资讯中心
+    url: https://news.foodmate.net
+    strategy: sites.foodmate:FoodmateStrategy
+    enabled: true
+    categories:
+      - 中国食品
+      - 权威发布
+      - 国际食品
+      - 国际预警
+      - 食品科技
+      - 外讯导读
+      - 产经企业
+      - 会展动态
+      - 食品专题
+      - 食品网刊
+
+  - name: 食品法规中心
+    url: https://law.foodmate.net
+    strategy: sites.foodmate_law:FoodmateLawStrategy
+    enabled: true
+    categories:
+      - 政策法规-推荐政策法规
+      - 政策法规-国家法规
+      - 政策法规-国外法规
+      - 政策法规-地方法规
+      - 法规草案-推荐法规草案
+      - 法规草案-国家法规草案
+      - 法规草案-地方法规草案
+      - 法规解读
+      - 法规动态
+
+  - name: 进出口食品安全信息平台
+    url: https://exim.foodmate.net
+    strategy: sites.exim:EximStrategy
+    enabled: true
+    categories:
+      - 最新信息动态
+      - 美国
+      - 欧盟
+      - 澳大利亚
+      - 日本
+      - 韩国
+      - 香港
+
+  - name: 每日食品网
+    url: https://www.foodaily.com
+    strategy: sites.foodaily:FoodailyStrategy
+    enabled: true
+    categories:
+      - 快讯
+
+  - name: 国家市场监督管理局
+    url: https://www.samr.gov.cn/tssps
+    strategy: sites.samr:SAMRStrategy
+    enabled: true
+    categories:
+      - 司局动态-司局动态
+      - 司局动态-图片新闻
+      - 司局动态-工作动态
+      - 政策文件
+
+  - name: 药智网
+    url: https://www.yaozh.com
+    strategy: sites.yaozh:YaozhStrategy
+    enabled: true
+    categories:
+      - 新闻
+      - 会议
+      - 医械
+      - 前沿
+
+  - name: 植提桥
+    url: https://www.herbridge.com
+    strategy: sites.herbridge:HerbridgeStrategy
+    enabled: true
+    categories:
+      - 资讯

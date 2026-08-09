@@ -1,0 +1,36 @@
+# Environment variables & secrets
+.env
+环境凭据.md
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Office temp files
+~$*
+
+# Obsidian
+.obsidian/
+
+# Internal docs (not for public repo)
+CLAUDE.md
+.planning/
+.workbuddy/
+
+# Runtime
+hs_err_pid*.log
+logs/

@@ -1,0 +1,37 @@
+# Core
+psycopg[binary,pool]>=3.3.3
+python-dotenv>=1.2.2
+
+# Data models
+pydantic>=2.12.0
+
+# Web framework (Phase 4+)
+fastapi>=0.115.0
+uvicorn>=0.30.0
+
+# Scraping (Phase 2+)
+scrapling>=0.4.7
+curl_cffi>=0.5.0
+playwright>=1.40.0
+browserforge>=1.0.0
+patchright>=1.0.0
+msgspec>=0.18.0
+
+# Keyword matching (Phase 3+)
+pyahocorasick>=2.3.1
+
+# HTTP client (Phase 3+)
+httpx>=0.28.0
+
+# Templates (Phase 5+)
+jinja2>=3.1.0
+
+# Config (Phase 2+)
+pyyaml>=6.0
+
+# Scheduling (Phase 4+)
+apscheduler>=3.11.0
+
+# Testing
+pytest>=8.0.0
+pytest-asyncio>=0.24.0

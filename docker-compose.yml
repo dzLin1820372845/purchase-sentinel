@@ -1,0 +1,45 @@
+# 采购舆情检测系统 - Docker Compose 配置
+# 双服务编排：PostgreSQL + App
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: sentiment-postgres
+    restart: unless-stopped
+    ports:
+      - "${PG_PORT:-5432}:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-sentiment}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sentiment_dev}
+      POSTGRES_DB: ${POSTGRES_DB:-sentiment}
+      TZ: Asia/Shanghai
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/01-init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sentiment} -d ${POSTGRES_DB:-sentiment}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: .
+    container_name: sentiment-app
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-8000}:8000"
+    # 生产环境(Linux/NAS)改为 network_mode: host 解决政府站点 TLS 兼容问题
+    # network_mode: host
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      TZ: Asia/Shanghai
+      DATABASE_URL: postgresql://${POSTGRES_USER:-sentiment}:${POSTGRES_PASSWORD:-sentiment_dev}@postgres:5432/${POSTGRES_DB:-sentiment}
+    env_file:
+      - .env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  pgdata:
+    driver: local
