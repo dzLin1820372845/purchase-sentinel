@@ -16,13 +16,13 @@ def config_file(tmp_path):
         "sites": [
             {
                 "name": "测试站点",
-                "strategy": "sites.nmpa:NMPAStrategy",
+                "strategy": "sites.example:ExampleStrategy",
                 "enabled": True,
-                "categories": ["化妆品监管工作"],
+                "categories": ["最新资讯"],
             },
             {
                 "name": "禁用站点",
-                "strategy": "sites.nmpa:NMPAStrategy",
+                "strategy": "sites.example:ExampleStrategy",
                 "enabled": False,
             },
         ]
@@ -71,9 +71,9 @@ def test_load_strategies_instantiates_with_kwargs(config_file):
     """策略特定参数（如 categories）通过 kwargs 传递给构造函数"""
     strategies = load_strategies(config_file)
     assert len(strategies) == 1
-    # 验证 categories 被正确过滤（只有 "化妆品监管工作"）
+    # 验证 categories 被正确过滤（只有 "最新资讯"）
     assert len(strategies[0].CATEGORIES) == 1
-    assert "化妆品监管工作" in strategies[0].CATEGORIES
+    assert "最新资讯" in strategies[0].CATEGORIES
 
 
 def test_load_strategies_file_not_found():
@@ -88,7 +88,7 @@ def test_load_strategies_invalid_path_format(tmp_path):
         "sites": [
             {
                 "name": "错误站点",
-                "strategy": "sites.nmpa",  # 缺少冒号分隔符
+                "strategy": "sites.example",  # 缺少冒号分隔符
                 "enabled": True,
             }
         ]
